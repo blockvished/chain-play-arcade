@@ -11,7 +11,7 @@ contract GameRegistry {
 
     uint256 public gameIdCount = 1;
 
-    constructor() {}
+    constructor() {}    
 
     mapping(uint256 gameId => GameDefinition) private gameDefinitions;
     GameDefinition[] private allGames;
