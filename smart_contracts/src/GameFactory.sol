@@ -14,6 +14,8 @@ contract GameRegistry {
     constructor() {}
 
     mapping(uint256 gameId => GameDefinition) private gameDefinitions;
+    GameDefinition[] private allGames;
+
 
     function createGameDefinition(
         string calldata name,
@@ -30,12 +32,17 @@ contract GameRegistry {
         });
 
         gameDefinitions[gameId] = newGame;
+        allGames.push(newGame);
 
         gameIdCount++;
     }
 
     function getGameDefinition(uint256 gameId) public view returns (GameDefinition memory) {
         return gameDefinitions[gameId];
+    }
+
+    function getAllGames() public view returns (GameDefinition[] memory) {
+        return allGames;
     }
 
 }
