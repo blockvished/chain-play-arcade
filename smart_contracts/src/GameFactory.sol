@@ -1,27 +1,36 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-contract GameRegistry {
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+
+contract GameRegistry is Ownable {
     struct GameDefinition {
         uint256 id;
         string name;
-        string image;      
+        string image;       // ipfs uri or img link for now
         string description;
     }
 
     uint256 public gameIdCount = 1;
 
+<<<<<<< HEAD
     constructor() {}    
 
+=======
+>>>>>>> 67f8709 (game factory events in gamehub and ownership)
     mapping(uint256 gameId => GameDefinition) private gameDefinitions;
     GameDefinition[] private allGames;
 
+    event GameDefinitionCreated(uint256 indexed gameId, string name, string image);
+    event GameImageUpdated(uint256 indexed gameId, string newImage);
+
+    constructor() Ownable(msg.sender) {}
 
     function createGameDefinition(
         string calldata name,
         string calldata image,
         string calldata description
-    ) public {
+    ) public onlyOwner {
         uint256 gameId = gameIdCount;
 
         GameDefinition memory newGame = GameDefinition({
@@ -32,7 +41,9 @@ contract GameRegistry {
         });
 
         gameDefinitions[gameId] = newGame;
-        allGames.push(newGame);
+        allGames.push(newGame); // add new game to array
+
+        emit GameDefinitionCreated(gameId, name, image);
 
         gameIdCount++;
     }
