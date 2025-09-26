@@ -33,4 +33,10 @@ contract GameHub is GameRegistry {
         ge.minStakeAmt = minStakeAmt;
     }
 
+    function joinGame(uint256 id) external payable {
+        Event storage ge = gamesEvents[id];
+        ge.pooledAmt += msg.value;
+
+        joined[id][msg.sender] = true;
+    }
 }
