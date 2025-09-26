@@ -13,11 +13,6 @@ contract GameRegistry is Ownable {
 
     uint256 public gameIdCount = 1;
 
-<<<<<<< HEAD
-    constructor() {}    
-
-=======
->>>>>>> 67f8709 (game factory events in gamehub and ownership)
     mapping(uint256 gameId => GameDefinition) private gameDefinitions;
     GameDefinition[] private allGames;
 

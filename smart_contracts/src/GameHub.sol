@@ -7,6 +7,8 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 contract GameHub is Ownable, GameRegistry {
 
     uint256 public gameEventCount = 1;
+    uint256 public constant LEADERBOARD_SIZE = 10;
+
 
     struct GameEvent {
         bool active;
@@ -17,18 +19,77 @@ contract GameHub is Ownable, GameRegistry {
         uint256 durationMinutes;
         uint256 minStakeAmt;
         uint256 pooledAmt;
+        bool scoresFinalized;
         uint256 playersCount;
         uint256 winnersCount;
     }
 
 
+    address public admin;
+    uint256 public adminWithdrawAllowances; // admin gets fee based on GameEvent struct
+    mapping(address => uint256) public winnerWithdrawAllowances;
+
+    mapping(uint256 => mapping(address => uint256)) public scores;
     mapping(uint256 => mapping(address => bool)) public joined;
+    mapping(uint256 => address[LEADERBOARD_SIZE]) public topPlayers;
     mapping(uint256 => GameEvent) public gamesEvents;
 
-    constructor() GameRegistry() {}
+    event GameCreated(uint256 gameEventId, uint256 referencedGameId, string eventName, uint256 startTime, uint256 endTime, bool active, uint256 durationMinutes, uint256 minStakeAmount);
+    event PlayerJoined(uint256 gameEventId, address player, uint256 pooledAmt, uint256 playersCount);
+    event ScoresFinalized(uint256 gameEventId);
+    event PrizeClaimed(address winner, uint256 amount);
+    event AdminChanged(address newAdmin);
+    event AdminWithdraw(address to, uint256 amount);
 
-    function createGameEvent(string calldata eventName, uint256 durationMinutes, uint256 minStakeAmt, uint256 winnersCount, bool activate) external onlyOwner {
+    error IncorrectStake(uint256 amountRequired, uint256 amoutSent);
+    error AlreadyJoined(uint256 gameEventId, address player);
+
+    error ScoresAlreadyFinalized(uint256 gameEventId);
+    error GameStillRunning(uint256 gameEventId);
+    error GameEnded(uint256 gameEventId);
+    error GameEndedOR_Already_Active(uint256 gameEventId);
+    error GameNotFound();
+    error PlayerNotJoined();
+    error GameAlreadyActive();
+    error NotAdmin();
+    error GameInactive();
+    error ArrayLengthMismatch();
+    error AdminWithdrawLimitExceeded();
+    error WinnerCountNot_1_or_3();
+
+    modifier onlyAdmin() {
+        _onlyAdminorOwner();
+        _;
+    }
+
+    function _onlyAdminorOwner() internal view {
+        if (msg.sender != admin || msg.sender != owner()) {
+            revert NotAdmin();
+        }
+    }
+
+    constructor(address initialAdmin) GameRegistry() {
+        admin = initialAdmin;
+    }
+
+    function setAdmin(address newAdmin) external onlyOwner {
+        admin = newAdmin;
+        emit AdminChanged(newAdmin);
+    }
+
+
+
+    // admin or owner can create the game event using id from game registry, and can specify duration minutes, minStakeAmt, and activate the game right away
+    function createGameEvent(uint256 gameId, string calldata eventName, uint256 durationMinutes, uint256 minStakeAmt, uint256 winnersCount, bool activate) external onlyAdmin {
         require(durationMinutes > 10, "duration must be > 10 minutes");
+
+        if (getGameDefinition(gameId).id == 0) {
+            revert GameNotFound();
+        }
+
+        if (winnersCount != 1 && winnersCount != 3) {
+            revert WinnerCountNot_1_or_3();
+        }
 
         uint256 gameEventId = gameEventCount;
         GameEvent storage ge = gamesEvents[gameEventCount];
@@ -46,29 +107,43 @@ contract GameHub is Ownable, GameRegistry {
             endTime = 0;
         }
 
+
         ge.eventName = eventName;
-        ge.referencedGameId = gameEventId;
+        ge.referencedGameId = gameId;
 
         ge.active = activate;
         ge.durationMinutes = durationMinutes;
         ge.minStakeAmt = minStakeAmt;
         ge.winnersCount = winnersCount;
+        ge.scoresFinalized = false;
 
         gameEventCount += 1;
+
+        emit GameCreated(gameEventId, gameId, eventName, startTime, endTime, activate, durationMinutes, minStakeAmt);
     }
 
-
+    // player can join the game event before it is started but is created, but not after it is ended
     function joinGame(uint256 gameEventId) external payable {
         GameEvent storage ge = gamesEvents[gameEventId];
+        if (block.timestamp > ge.endTime) revert GameEnded(gameEventId);
+        if (joined[gameEventId][msg.sender]) revert AlreadyJoined(gameEventId, msg.sender);
+
+        if (msg.value != ge.minStakeAmt) revert IncorrectStake(ge.minStakeAmt, msg.value);
 
         ge.pooledAmt += msg.value;
 
         joined[gameEventId][msg.sender] = true;
         ge.playersCount += 1;
+
+
+        emit PlayerJoined(gameEventId, msg.sender, ge.pooledAmt, ge.playersCount);
     }
 
-    function activateGame(uint256 gameEventId) external onlyOwner {
+    // if game is inactive then it can be activated
+    function activateGame(uint256 gameEventId) external onlyAdmin {
         GameEvent storage ge = gamesEvents[gameEventId];
+        if (ge.active) revert GameAlreadyActive();
+        if (ge.endTime != 0) revert GameEndedOR_Already_Active(gameEventId);
         uint256 startTime = block.timestamp;
         uint256 endTime = startTime + (ge.durationMinutes * 1 minutes);
         ge.startTime = startTime;
@@ -76,9 +151,52 @@ contract GameHub is Ownable, GameRegistry {
         ge.active = true;
     }
 
+    // NOTE: admin/owner should send the scores in descending order but correctly matched to correct players
+    // e.g. players = [<address_of_100_scorer>, <address_of_90_scorer>, <address_of_50_scorer>, <address_of_20_scorer>];
+    // e.g. finalScores = [100,90,50,20]
+    function finalizeScores(uint256 gameEventId) {
+        GameEvent storage ge = gamesEvents[gameEventId];
+
+        if (!(players.length == finalScores.length)) {
+            revert ArrayLengthMismatch();
+        }
+
+        if (block.timestamp <= ge.endTime) revert GameStillRunning(gameEventId);
+        if (ge.scoresFinalized) revert ScoresAlreadyFinalized(gameEventId);
+
+        address[LEADERBOARD_SIZE] memory leaderboard;
+
+        // TODO: update the scores and leaderboard and winners
+
+        emit ScoresFinalized(gameEventId);
+    }
+
+
+    
+    function claimPrize() external {
+        uint256 winnerAmount = winnerWithdrawAllowances[msg.sender];
+        winnerWithdrawAllowances[msg.sender] = 0;
+
+        (bool sent, ) = payable(msg.sender).call{value: winnerAmount}("");
+        require(sent, "transfer failed");
+
+        emit PrizeClaimed(msg.sender, winnerAmount);
+    }
+
+    function adminWithdraw(address payable to, uint256 amount) external onlyAdmin {
+        if (adminWithdrawAllowances >= amount) {
+            revert AdminWithdrawLimitExceeded();
+        }
+
+        (bool sent, ) = to.call{value: amount}("");
+        require(sent, "transfer failed");
+
+        emit AdminWithdraw(to, amount);
+    }
 
     function isActive(uint256 gameEventId) external view returns (bool) {
         GameEvent storage ge = gamesEvents[gameEventId];
+        if (!ge.active) revert GameInactive();
         return block.timestamp >= ge.startTime && block.timestamp <= ge.endTime;
     }
 
