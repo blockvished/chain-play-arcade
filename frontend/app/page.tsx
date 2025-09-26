@@ -2,12 +2,14 @@
 
 import { useEffect } from "react"
 import { Navigation } from "@/components/navigation"
+import { StatsOverview } from "@/components/stats-overview"
+import { useTournamentStore } from "@/lib/store"
+import { dummyTournaments } from "@/lib/dummy-data"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { dummyTournaments } from "@/lib/dummy-data"
 import { Gamepad2, Trophy, Clock } from "lucide-react"
 import Link from "next/link"
-import { useTournamentStore } from "@/lib/store"
+import { TournamentCard } from "@/components/tournament-card"
 
 export default function Dashboard() {
   const { tournaments, setTournaments } = useTournamentStore()
@@ -17,7 +19,9 @@ export default function Dashboard() {
     setTournaments(dummyTournaments)
   }, [setTournaments])
 
-  
+  const activeTournaments = tournaments.filter((t) => t.status === "active")
+  const totalPrizePool = tournaments.reduce((sum, t) => sum + Number.parseFloat(t.prizePool), 0).toFixed(3)
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -32,9 +36,16 @@ export default function Dashboard() {
           </p>
         </div>
 
+        {/* Stats Overview */}
+        <StatsOverview
+          totalTournaments={tournaments.length}
+          activeTournaments={activeTournaments.length}
+          totalPrizePool={totalPrizePool}
+          userWinnings="0.23"
+        />
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
           <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
             <CardHeader>
               <CardTitle className="flex items-center text-green-400">
@@ -73,7 +84,31 @@ export default function Dashboard() {
 
         </div>
 
-       
+        {/* Active Tournaments */}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-foreground">Active Tournaments</h2>
+            <Link href="/tournaments">
+              <Button variant="outline">View All</Button>
+            </Link>
+          </div>
+
+          {activeTournaments.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {activeTournaments.slice(0, 3).map((tournament) => (
+                <TournamentCard key={tournament.id} tournament={tournament} />
+              ))}
+            </div>
+          ) : (
+            <Card className="text-center py-12">
+              <CardContent>
+                <Gamepad2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">No Active Tournaments</h3>
+                <p className="text-muted-foreground">Check back soon for new tournaments to join!</p>
+              </CardContent>
+            </Card>
+          )}
+        </section>
       </main>
     </div>
   )

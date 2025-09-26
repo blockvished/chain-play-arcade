@@ -17,36 +17,6 @@ export const dummyTournaments: Tournament[] = [
     difficulty: "medium",
   },
   {
-    id: "2",
-    name: "Simon Says Speed Run",
-    gameType: "simon-says",
-    entryFee: "0.005",
-    prizePool: "0.25",
-    duration: 24,
-    maxPlayers: 200,
-    currentPlayers: 143,
-    status: "active",
-    startTime: new Date(Date.now() - 8 * 60 * 60 * 1000), // 8 hours ago
-    endTime: new Date(Date.now() + 16 * 60 * 60 * 1000), // 16 hours from now
-    rules: "Complete as many sequences as possible. Speed and accuracy matter.",
-    difficulty: "hard",
-  },
-  {
-    id: "3",
-    name: "Memory Master",
-    gameType: "memory-match",
-    entryFee: "0.02",
-    prizePool: "1.2",
-    duration: 6,
-    maxPlayers: 50,
-    currentPlayers: 12,
-    status: "upcoming",
-    startTime: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours from now
-    endTime: new Date(Date.now() + 8 * 60 * 60 * 1000), // 8 hours from now
-    rules: "Match pairs in minimum moves. Bonus points for speed.",
-    difficulty: "easy",
-  },
-  {
     id: "4",
     name: "Number Guessing Elite",
     gameType: "number-guess",
