@@ -18,7 +18,10 @@ function createGame() {
         currentPlayer: "X", // Human starts first
         gameStartTime: new Date().toISOString(),
         gameEndTime: null,
-        moveCount: 0
+        moveCount: 0,
+        // Per-turn cumulative log for post-match analysis
+        // Each entry: { human_choice: {row, col}, ai_move: {row, col} | null, deleting_cell: [{row, col, player}] }
+        turnLog: []
     };
     games.set(gameId, game);
     return game;
@@ -69,7 +72,22 @@ function applyMemoryDecay(board, moveHistory, player) {
     if (playerMoves.length > 4) {
         const disappearingMove = playerMoves[playerMoves.length - 5];
         board[disappearingMove.row][disappearingMove.col] = "";
+        return { row: disappearingMove.row, col: disappearingMove.col, player };
     }
+    return null;
+}
+
+// Record a single turn composed of human move, optional AI move, and any deleted cells
+function logTurn(game, humanChoice, aiMove, humanDeletedCell, aiDeletedCell) {
+    const deletedCells = [];
+    if (humanDeletedCell) deletedCells.push({ row: humanDeletedCell.row, col: humanDeletedCell.col, player: humanDeletedCell.player });
+    if (aiDeletedCell) deletedCells.push({ row: aiDeletedCell.row, col: aiDeletedCell.col, player: aiDeletedCell.player });
+
+    game.turnLog.push({
+        human_choice: humanChoice ? { row: humanChoice.row, col: humanChoice.col } : null,
+        ai_move: aiMove ? { row: aiMove.row, col: aiMove.col } : null,
+        deleting_cell: deletedCells.length > 0 ? deletedCells : null
+    });
 }
 
 function generatePoints(status, moves, time) {
@@ -169,17 +187,21 @@ const gamePlay = (req, res) => {
         
 
         // Make human move
+        const humanChoice = { row, col };
         game.board[row][col] = "X";
         game.moveHistory.push({ row, col, player: "X" });
         game.moveCount++;
         
-        // Apply memory decay for human
-        applyMemoryDecay(game.board, game.moveHistory, "X");
+        // Apply memory decay for human and capture deleted cell (if any)
+        const humanDeletedCell = applyMemoryDecay(game.board, game.moveHistory, "X");
         
         // Check for human win
         const winner = checkWinner(game.board);
         if (winner === "X") {
             endGame(game, "X");
+            
+            // Log this (final) turn without an AI move
+            logTurn(game, humanChoice, null, humanDeletedCell, null);
             
             // Calculate game duration and points
             const gameDuration = new Date() - new Date(game.gameStartTime);
@@ -196,7 +218,8 @@ const gamePlay = (req, res) => {
                     gameEndTime: game.gameEndTime,
                     moveCount: game.moveCount,
                     message: "You won!",
-                    points: points
+                    points: points,
+                    turnLog: game.turnLog
                 }
             });
         }
@@ -211,6 +234,9 @@ const gamePlay = (req, res) => {
             const gameDuration = new Date() - new Date(game.gameStartTime);
             const points = generatePoints("draw", game.moveCount, gameDuration);
             
+            // Log this turn (no AI move)
+            logTurn(game, humanChoice, null, humanDeletedCell, null);
+            
             return res.json({
                 success: true,
                 game: {
@@ -222,7 +248,8 @@ const gamePlay = (req, res) => {
                     gameEndTime: game.gameEndTime,
                     moveCount: game.moveCount,
                     message: "No valid moves available",
-                    points: points
+                    points: points,
+                    turnLog: game.turnLog
                 }
             });
         }
@@ -233,8 +260,11 @@ const gamePlay = (req, res) => {
         game.moveCount++;
 
 
-        // Apply memory decay for AI
-        applyMemoryDecay(game.board, game.moveHistory, "O");
+        // Apply memory decay for AI and capture deleted cell (if any)
+        const aiDeletedCell = applyMemoryDecay(game.board, game.moveHistory, "O");
+
+        // Log the full turn with both human and AI actions
+        logTurn(game, humanChoice, aiMove, humanDeletedCell, aiDeletedCell);
 
                 // Check for AI win
         const aiWinner = checkWinner(game.board);
@@ -257,10 +287,16 @@ const gamePlay = (req, res) => {
                     moveCount: game.moveCount,
                     aiMove: { row: aiMove.row, col: aiMove.col },
                     message: "AI won!",
-                    points: points
+                    points: points,
+                    turnLog: game.turnLog
                 }
             });
         }
+
+        // Build deleted cells for this turn so frontend can animate properly
+        const deletedCellsThisTurn = [];
+        if (humanDeletedCell) deletedCellsThisTurn.push({ row: humanDeletedCell.row, col: humanDeletedCell.col, player: humanDeletedCell.player });
+        if (aiDeletedCell) deletedCellsThisTurn.push({ row: aiDeletedCell.row, col: aiDeletedCell.col, player: aiDeletedCell.player });
 
         // Game continues
         return res.json({
@@ -273,7 +309,8 @@ const gamePlay = (req, res) => {
                 gameStartTime: game.gameStartTime,
                 moveCount: game.moveCount,
                 aiMove: { row: aiMove.row, col: aiMove.col },
-                message: "Game continues"
+                message: "Game continues",
+                deletedCellsThisTurn
             }
         });
 
