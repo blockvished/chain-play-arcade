@@ -1,26 +1,25 @@
 "use client"
 
-import { useEffect } from "react"
 import { Navigation } from "@/components/navigation"
 import { StatsOverview } from "@/components/stats-overview"
 import { useTournamentStore } from "@/lib/store"
-import { dummyTournaments } from "@/lib/dummy-data"
+import { useGameEvents } from "@/lib/hooks/useGameEvents"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Gamepad2, Trophy, Clock } from "lucide-react"
+import { Gamepad2, Trophy, Clock, RefreshCw, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { TournamentCard } from "@/components/tournament-card"
 
 export default function Dashboard() {
-  const { tournaments, setTournaments } = useTournamentStore()
+  const { getAllGames, gameEvents, isLoading, error } = useTournamentStore()
+  const { refetch } = useGameEvents()
 
-  useEffect(() => {
-    // Load dummy data
-    setTournaments(dummyTournaments)
-  }, [setTournaments])
+  const allGames = getAllGames()
+  const activeTournaments = allGames.filter((t: any) => 'active' in t ? t.active : false)
+  const totalPrizePool = allGames.reduce((sum, t: any) => sum + Number.parseFloat(t.pooledAmt || '0'), 0).toFixed(3)
 
-  const activeTournaments = tournaments.filter((t) => t.status === "active")
-  const totalPrizePool = tournaments.reduce((sum, t) => sum + Number.parseFloat(t.prizePool), 0).toFixed(3)
+  console.log("All games:", allGames)
+  console.log("Active tournaments:", activeTournaments)
 
   return (
     <div className="min-h-screen bg-background">
@@ -38,7 +37,7 @@ export default function Dashboard() {
 
         {/* Stats Overview */}
         <StatsOverview
-          totalTournaments={tournaments.length}
+          totalTournaments={allGames.length}
           activeTournaments={activeTournaments.length}
           totalPrizePool={totalPrizePool}
           userWinnings="0.23"
@@ -84,18 +83,58 @@ export default function Dashboard() {
 
         </div>
 
-        {/* Active Tournaments */}
+        {error && (
+          <Card className="mb-6 border-red-500/20 bg-red-500/5">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 text-red-400">
+                <AlertCircle className="h-5 w-5" />
+                <span className="font-medium">GameHub Connection Error</span>
+              </div>
+              <p className="text-sm text-red-300 mt-2">{error}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 border-red-500/30 text-red-400 hover:bg-red-500/10"
+                onClick={refetch}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <section className="mb-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-foreground">Active Tournaments</h2>
-            <Link href="/tournaments">
-              <Button variant="outline">View All</Button>
-            </Link>
+            <div className="flex items-center gap-4">
+              <h2 className="text-2xl font-bold text-foreground">Active Tournaments</h2>
+              {isLoading && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Loading game events...
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refetch}
+                disabled={isLoading}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+              <Link href="/tournaments">
+                <Button variant="outline">View All</Button>
+              </Link>
+            </div>
           </div>
 
           {activeTournaments.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {activeTournaments.slice(0, 3).map((tournament) => (
+              {activeTournaments.slice(0, 6).map((tournament) => (
                 <TournamentCard key={tournament.id} tournament={tournament} />
               ))}
             </div>
@@ -104,7 +143,13 @@ export default function Dashboard() {
               <CardContent>
                 <Gamepad2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">No Active Tournaments</h3>
-                <p className="text-muted-foreground">Check back soon for new tournaments to join!</p>
+                <p className="text-muted-foreground mb-4">Check back soon for new tournaments to join!</p>
+                {!isLoading && (
+                  <Button variant="outline" onClick={refetch} className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                    Load Game Events
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}
