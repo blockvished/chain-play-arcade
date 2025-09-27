@@ -55,23 +55,21 @@ function isValidMove(board, row, col) {
     return row >= 0 && row < 4 && col >= 0 && col < 4 && board[row][col] === "";
 }
 
-// Check if board is full
-function isBoardFull(board) {
-    for (let row = 0; row < 4; row++) {
-        for (let col = 0; col < 4; col++) {
-            if (board[row][col] === "") return false;
-        }
-    }
-    return true;
-}
-
-
 // End game and set end timestamp
 function endGame(game, winner = null) {
     game.status = winner ? "won" : "draw";
     game.winner = winner;
     game.gameEndTime = new Date().toISOString();
     return game;
+}
+
+// Apply memory decay (oldest of 5th move disappears)
+function applyMemoryDecay(board, moveHistory, player) {
+    const playerMoves = moveHistory.filter(move => move.player === player);
+    if (playerMoves.length > 4) {
+        const disappearingMove = playerMoves[playerMoves.length - 5];
+        board[disappearingMove.row][disappearingMove.col] = "";
+    }
 }
 
 const gamePlay = (req, res) => {
