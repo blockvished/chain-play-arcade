@@ -9,7 +9,6 @@ contract GameHub is Ownable, GameRegistry {
     uint256 public gameEventCount = 1;
     uint256 public constant LEADERBOARD_SIZE = 10;
 
-
     struct GameEvent {
         bool active;
         string eventName;
@@ -23,7 +22,6 @@ contract GameHub is Ownable, GameRegistry {
         uint256 playersCount;
         uint256 winnersCount;
     }
-
 
     address public admin;
     uint256 public adminWithdrawAllowances; // admin gets fee based on GameEvent struct
@@ -77,8 +75,6 @@ contract GameHub is Ownable, GameRegistry {
         emit AdminChanged(newAdmin);
     }
 
-
-
     // admin or owner can create the game event using id from game registry, and can specify duration minutes, minStakeAmt, and activate the game right away
     function createGameEvent(uint256 gameId, string calldata eventName, uint256 durationMinutes, uint256 minStakeAmt, uint256 winnersCount, bool activate) external onlyAdmin {
         require(durationMinutes > 10, "duration must be > 10 minutes");
@@ -107,7 +103,6 @@ contract GameHub is Ownable, GameRegistry {
             endTime = 0;
         }
 
-
         ge.eventName = eventName;
         ge.referencedGameId = gameId;
 
@@ -135,7 +130,6 @@ contract GameHub is Ownable, GameRegistry {
         joined[gameEventId][msg.sender] = true;
         ge.playersCount += 1;
 
-
         emit PlayerJoined(gameEventId, msg.sender, ge.pooledAmt, ge.playersCount);
     }
 
@@ -154,7 +148,7 @@ contract GameHub is Ownable, GameRegistry {
     // NOTE: admin/owner should send the scores in descending order but correctly matched to correct players
     // e.g. players = [<address_of_100_scorer>, <address_of_90_scorer>, <address_of_50_scorer>, <address_of_20_scorer>];
     // e.g. finalScores = [100,90,50,20]
-    function finalizeScores(uint256 gameEventId) {
+    function finalizeScores(uint256 gameEventId, address[] calldata players, uint256[] calldata finalScores, bool noWinner) external onlyOwner {
         GameEvent storage ge = gamesEvents[gameEventId];
 
         if (!(players.length == finalScores.length)) {
@@ -166,7 +160,40 @@ contract GameHub is Ownable, GameRegistry {
 
         address[LEADERBOARD_SIZE] memory leaderboard;
 
-        // TODO: update the scores and leaderboard and winners
+        for (uint256 i = 0; i < players.length; ++i) {
+            address p = players[i];
+            if (!joined[gameEventId][p]) revert PlayerNotJoined();
+
+            uint256 score = finalScores[i];
+
+            // optimized, insert leaderboard, as the values and scores of players are in descending order
+            if (i < LEADERBOARD_SIZE) {
+                leaderboard[i] = (players[i]);
+
+            }
+
+            scores[gameEventId][p] = score;
+        }
+
+        topPlayers[gameEventId] = leaderboard;
+        ge.scoresFinalized = true;
+        ge.active = false;
+
+        uint256 totalPrizePool = ge.pooledAmt;
+        uint256 tenPercentOfPool = (totalPrizePool * 10)/100;
+
+        if (noWinner) {
+            adminWithdrawAllowances = totalPrizePool;
+        } else if (ge.winnersCount == 1) {
+            adminWithdrawAllowances = tenPercentOfPool;
+            winnerWithdrawAllowances[players[0]] = totalPrizePool - tenPercentOfPool;
+        } else if (ge.winnersCount == 3) {
+            adminWithdrawAllowances = tenPercentOfPool;
+
+            winnerWithdrawAllowances[players[0]] = totalPrizePool - (5*tenPercentOfPool);
+            winnerWithdrawAllowances[players[1]] = totalPrizePool - (3*tenPercentOfPool);
+            winnerWithdrawAllowances[players[2]] = tenPercentOfPool;
+        }
 
         emit ScoresFinalized(gameEventId);
     }
@@ -200,5 +227,7 @@ contract GameHub is Ownable, GameRegistry {
         return block.timestamp >= ge.startTime && block.timestamp <= ge.endTime;
     }
 
-    receive() external payable {}
+    receive() external payable {
+        adminWithdrawAllowances += msg.value;
+    }
 }
