@@ -12,7 +12,7 @@ contract GameRegistryTest is Test {
     }
 
     function testInitialState() public {
-        assertEq(registry.gameIdCount(), 1);
+        assertEq(registry.nextGameCount(), 1);
         GameRegistry.GameDefinition[] memory games = registry.getAllGames();
         assertEq(games.length, 0);
     }
@@ -20,7 +20,7 @@ contract GameRegistryTest is Test {
     function testCreateGameDefinition() public {
         registry.createGameDefinition("Chess", "chess.png", "A strategy board game");
 
-        assertEq(registry.gameIdCount(), 2);
+        assertEq(registry.nextGameCount(), 2);
 
         GameRegistry.GameDefinition memory game = registry.getGameDefinition(1);
         assertEq(game.id, 1);
@@ -39,7 +39,7 @@ contract GameRegistryTest is Test {
         registry.createGameDefinition("Sudoku", "sudoku.png", "Number placement puzzle");
         registry.createGameDefinition("Poker", "poker.png", "Card game");
 
-        assertEq(registry.gameIdCount(), 4);
+        assertEq(registry.nextGameCount(), 4);
 
         GameRegistry.GameDefinition[] memory games = registry.getAllGames();
         assertEq(games.length, 3);

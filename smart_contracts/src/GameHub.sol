@@ -3,11 +3,13 @@ pragma solidity ^0.8.19;
 
 import { GameRegistry } from "./GameFactory.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { SVGNFT } from "./Nft.sol";
 
 contract GameHub is Ownable, GameRegistry {
 
     uint256 public gameEventCount = 1;
     uint256 public constant LEADERBOARD_SIZE = 10;
+    SVGNFT public svgNft;
 
     struct GameEvent {
         bool active;
@@ -32,6 +34,7 @@ contract GameHub is Ownable, GameRegistry {
     address public admin;
     uint256 public adminWithdrawAllowances; // admin gets fee based on GameEvent struct
     mapping(address => uint256) public winnerWithdrawAllowances;
+    mapping (address => uint256) public rankOfWinner;
 
     mapping(uint256 gameEventId=> mapping(address => uint256)) public scores;
     mapping(uint256 gameEventId=> mapping(address => bool)) public joined;
@@ -73,8 +76,10 @@ contract GameHub is Ownable, GameRegistry {
         }
     }
 
-    constructor(address initialAdmin) GameRegistry() {
+        // CONSTRUCTOR
+      constructor(address initialAdmin, address svgNftAddress) GameRegistry() {
         admin = initialAdmin;
+        svgNft = SVGNFT(svgNftAddress);
     }
 
     function setAdmin(address newAdmin) external onlyOwner {
@@ -194,12 +199,18 @@ contract GameHub is Ownable, GameRegistry {
         } else if (ge.winnersCount == 1) {
             adminWithdrawAllowances = tenPercentOfPool;
             winnerWithdrawAllowances[players[0]] = totalPrizePool - tenPercentOfPool;
+                        rankOfWinner[players[0]]=1;
+
         } else if (ge.winnersCount == 3) {
             adminWithdrawAllowances = tenPercentOfPool;
 
             winnerWithdrawAllowances[players[0]] =  5*tenPercentOfPool;
             winnerWithdrawAllowances[players[1]] =  3*tenPercentOfPool;
             winnerWithdrawAllowances[players[2]] = tenPercentOfPool;
+
+            rankOfWinner[players[0]]=1;
+            rankOfWinner[players[1]]=2;
+            rankOfWinner[players[2]]=3;
         }
 
         emit ScoresFinalized(gameEventId);
@@ -219,6 +230,9 @@ contract GameHub is Ownable, GameRegistry {
 
         (bool sent, ) = payable(msg.sender).call{value: winnerAmount}("");
         require(sent, "transfer failed");
+
+        uint rank = rankOfWinner[msg.sender];
+        svgNft.create(rank);  //nft
 
         emit PrizeClaimed(msg.sender, winnerAmount);
     }
