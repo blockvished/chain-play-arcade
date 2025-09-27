@@ -24,6 +24,44 @@ export const GameHubABI = [
   },
   {
     "type": "function",
+    "name": "createGameEvent",
+    "inputs": [
+      {
+        "name": "gameId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "eventName",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "durationMinutes",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "minStakeAmt",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "winnersCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "activate",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "gameEventCount",
     "inputs": [],
     "outputs": [

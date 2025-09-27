@@ -69,8 +69,50 @@ export const useGameRegistryService = () => {
     }
   }
 
+  const createGameEvent = async (
+    gameId: number,
+    eventName: string,
+    durationMinutes: number,
+    minStakeAmt: string,
+    winnersCount: number,
+    activate: boolean
+  ): Promise<string> => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      // Check wallet connection
+      if (!isConnected) {
+        throw new Error("Wallet not connected. Please connect your wallet to create game events.")
+      }
+
+      // Check if service is initialized
+      if (!service) {
+        throw new Error("Blockchain service not initialized. Please try again.")
+      }
+
+      console.log("🏗️ Creating game event with service...")
+      console.log("📤 Calling createGameEvent contract function...")
+      console.log("📋 Event details:", { gameId, eventName, durationMinutes, minStakeAmt, winnersCount, activate })
+      
+      // Call the real contract function
+      const txHash = await service.createGameEvent(gameId, eventName, durationMinutes, minStakeAmt, winnersCount, activate)
+      
+      console.log("✅ Game event created successfully!")
+      return txHash
+    } catch (err) {
+      console.error("❌ Error in createGameEvent:", err)
+      const errorMessage = err instanceof Error ? err.message : "Failed to create game event"
+      setError(errorMessage)
+      throw new Error(errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return {
     createGameDefinition,
+    createGameEvent,
     isLoading,
     error,
     isServiceReady: !!service && isConnected,
