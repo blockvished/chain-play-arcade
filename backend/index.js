@@ -1,5 +1,5 @@
 const express = require("express");
-const routerTictac = require("./routes/tictac");
+const routerTictac = require("./router/tictac");
 const app = express();
 app.use(express.json());
 
