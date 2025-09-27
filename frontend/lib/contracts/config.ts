@@ -2,7 +2,7 @@ import { flowTestnet } from "wagmi/chains"
 
 export const CONTRACT_ADDRESSES = {
   [flowTestnet.id]: {
-    GameHub: "0x2FD4f932325EF8555597Ae816E352D3854B4f73c", 
+    GameHub: "0x05CaE15c24b3Fcd9374998e6fB59aE893395A6B9", 
   },
 } as const
 
