@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Clock, Users, Trophy, Coins, Target } from "lucide-react"
+import { Clock, Users, Trophy, Coins, Gamepad2, Target } from "lucide-react"
 import Link from "next/link"
 
 export default function TournamentDetailsPage() {
@@ -131,6 +131,93 @@ export default function TournamentDetailsPage() {
                 <div>
                   <h3 className="font-semibold mb-2">Game Rules</h3>
                   <p className="text-muted-foreground text-pretty">{tournament.rules}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="space-y-6">
+            {/* Action Card */}
+            <Card className="tournament-card">
+              <CardHeader>
+                <CardTitle>Join Tournament</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {tournament.status === "active" && tournament.currentPlayers < tournament.maxPlayers && (
+                  <>
+                    <div className="text-center p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+                      <Gamepad2 className="h-8 w-8 mx-auto mb-2 text-green-400" />
+                      <div className="font-semibold text-green-400">Ready to Play!</div>
+                      <div className="text-sm text-muted-foreground mt-1">Tournament is active</div>
+                    </div>
+                    <Button className="w-full game-glow" size="lg">
+                      Join for {tournament.entryFee} ETH
+                    </Button>
+                    <Link href={`/game/${tournament.gameType}?tournament=${tournament.id}`}>
+                      <Button variant="outline" className="w-full bg-transparent">
+                        Practice First
+                      </Button>
+                    </Link>
+                  </>
+                )}
+
+                {tournament.status === "upcoming" && (
+                  <>
+                    <div className="text-center p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                      <Clock className="h-8 w-8 mx-auto mb-2 text-blue-400" />
+                      <div className="font-semibold text-blue-400">Coming Soon</div>
+                      <div className="text-sm text-muted-foreground mt-1">{getTimeRemaining()}</div>
+                    </div>
+                    <Button variant="secondary" className="w-full" size="lg">
+                      Register Interest
+                    </Button>
+                  </>
+                )}
+
+                {tournament.status === "ended" && (
+                  <>
+                    <div className="text-center p-4 bg-gray-500/10 rounded-lg border border-gray-500/20">
+                      <Trophy className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                      <div className="font-semibold text-gray-400">Tournament Ended</div>
+                      <div className="text-sm text-muted-foreground mt-1">Check results below</div>
+                    </div>
+                    <Button variant="outline" className="w-full bg-transparent" disabled>
+                      Tournament Closed
+                    </Button>
+                  </>
+                )}
+
+                {tournament.currentPlayers >= tournament.maxPlayers && tournament.status === "active" && (
+                  <>
+                    <div className="text-center p-4 bg-red-500/10 rounded-lg border border-red-500/20">
+                      <Users className="h-8 w-8 mx-auto mb-2 text-red-400" />
+                      <div className="font-semibold text-red-400">Tournament Full</div>
+                      <div className="text-sm text-muted-foreground mt-1">All spots taken</div>
+                    </div>
+                    <Button variant="outline" className="w-full bg-transparent" disabled>
+                      Tournament Full
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Tournament Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Tournament Stats</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Game Type</span>
+                  <span className="font-medium capitalize">{tournament.gameType.replace("-", " ")}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Start Time</span>
+                  <span className="font-medium">{tournament.startTime.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">End Time</span>
+                  <span className="font-medium">{tournament.endTime.toLocaleString()}</span>
                 </div>
               </CardContent>
             </Card>
