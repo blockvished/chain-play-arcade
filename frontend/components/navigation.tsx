@@ -8,6 +8,7 @@ import { Gamepad2, Home} from "lucide-react"
 
 const playerNavItems = [
   { href: "/", label: "Dashboard", icon: Home },
+  { href: "/tournaments", label: "Tournaments", icon: Gamepad2 },
 ]
 
 export function Navigation() {
