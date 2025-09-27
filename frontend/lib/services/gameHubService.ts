@@ -44,17 +44,28 @@ export class GameHubService {
   /**
    * Get a specific game event by ID
    */
-  async getGameEvent(gameEventId: bigint): Promise<GameEvent> {
+  async getGameEvent(gameEventId: bigint, playerAddr?: string): Promise<GameEvent> {
     try {
-      console.log(`🔗 Calling gamesEvents(${gameEventId}) on contract`)
       const event = await this.contract.gamesEvents(gameEventId)
-      console.log(`🔗 gamesEvents(${gameEventId}) result:`, event)
+      
+      let joined = false
+      if (playerAddr) {
+        try {
+          joined = await this.joined(Number(gameEventId), playerAddr)
+        } catch (error) {
+          console.warn(`Failed to fetch joined status for player ${playerAddr}:`, error)
+          joined = false
+        }
+      } else {
+        console.log(`🔍 No player address provided, joined status will be false`)
+      }
       
       return {
         active: event.active,
         eventName: event.eventName,
         startTime: event.startTime,
         endTime: event.endTime,
+        eventId: event.eventId,
         referencedGameId: event.referencedGameId,
         durationMinutes: event.durationMinutes,
         minStakeAmt: event.minStakeAmt,
@@ -62,6 +73,7 @@ export class GameHubService {
         scoresFinalized: event.scoresFinalized,
         playersCount: event.playersCount,
         winnersCount: event.winnersCount,
+        joined,
       }
     } catch (error) {
       console.error(`❌ Error fetching game event ${gameEventId}:`, error)
@@ -72,24 +84,79 @@ export class GameHubService {
   /**
    * Get all game events by looping through all event IDs
    */
-  async getAllGameEvents(): Promise<GameEvent[]> {
+  async getAllGameEvents(playerAddr?: string): Promise<GameEvent[]> {
     try {
       const count = await this.getGameEventCount()
       const events: GameEvent[] = []
 
       for (let i = 1; i < Number(count); i++) {
         try {
-          const event = await this.getGameEvent(BigInt(i))
-          events.push(event)
+          console.log(`🔄 Fetching game event ${i}...`)
+          const event = await this.getGameEvent(BigInt(i), playerAddr);
+          const eventWithId = { ...event, eventId: i };
+          events.push(eventWithId);
+          console.log(`✅ Game event ${i} fetched with joined status:`, eventWithId.joined, playerAddr);
         } catch (error) {
-          console.warn(`Failed to fetch game event ${i}:`, error)
+          console.warn(`Failed to fetch game event ${i}:`, error);
         }
       }
 
+      console.log(`📊 Total events fetched: ${events.length}`)
       return events
     } catch (error) {
       console.error("Error fetching all game events:", error)
       throw new Error("Failed to fetch game events from blockchain")
+    }
+  }
+
+  /**
+   * Check if a player has joined a specific game event
+   */
+  async joined(gameEventId: number, playerAddr: string): Promise<boolean> {
+    try {
+      
+      const joined = await (this.contract as any).joined(gameEventId, playerAddr)
+      
+      return joined
+    } catch (error) {
+      throw new Error(`Failed to check joined status: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  /**
+   * Join a game event by paying the stake amount
+   */
+  async joinGame(gameEventId: bigint, stakeAmt: bigint, signer: ethers.Signer): Promise<string> {
+    try {
+      
+      const contractWithSigner = this.contract.connect(signer)
+      
+      const tx = await (contractWithSigner as any).joinGame(gameEventId, { value: stakeAmt })
+      
+      const receipt = await tx.wait()
+      console.log("✅ Successfully joined game! Receipt:", receipt)
+      
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      return tx.hash
+    } catch (error) {
+      console.error(`❌ Error joining game event ${gameEventId}:`, error)
+      throw new Error(`Failed to join game event: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  /**
+   * Refresh the joined status for a specific game event and player
+   */
+  async refreshJoinedStatus(gameEventId: number, playerAddr: string): Promise<boolean> {
+    try {
+      console.log(`🔄 Refreshing joined status for game event ${gameEventId} and player ${playerAddr}`)
+      const joined = await this.joined(gameEventId, playerAddr)
+      console.log(`🔄 Refreshed joined status:`, joined)
+      return joined
+    } catch (error) {
+      console.error(`❌ Error refreshing joined status:`, error)
+      return false
     }
   }
 }

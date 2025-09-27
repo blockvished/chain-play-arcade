@@ -8,6 +8,7 @@ export interface GameEventTournament {
   eventName: string
   startTime: Date
   endTime: Date
+  eventId: number
   referencedGameId: string
   durationMinutes: number
   minStakeAmt: string
@@ -15,6 +16,7 @@ export interface GameEventTournament {
   scoresFinalized: boolean
   playersCount: number
   winnersCount: number
+  joined?: boolean
 }
 
 export interface Tournament {
@@ -68,6 +70,7 @@ interface TournamentStore {
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   joinTournament: (tournamentId: string) => void
+  updateJoinedStatus: (tournamentId: string, joined: boolean) => void
   updateScore: (tournamentId: string, score: number) => void
   getAllGames: () => (Tournament | GameEventTournament)[]
 }
@@ -105,7 +108,7 @@ export const useTournamentStore = create<TournamentStore>()(
         if (tournament && (!('maxPlayers' in tournament) || ('currentPlayers' in tournament ? tournament.currentPlayers : 0) < tournament.maxPlayers)) {
           if ('playersCount' in tournament) {
             const updatedEvents = gameEvents.map((t) =>
-              t.id === tournamentId ? { ...t, playersCount: t.playersCount + 1 } : t,
+              t.id === tournamentId ? { ...t, playersCount: t.playersCount + 1, joined: true } : t,
             )
             set({ gameEvents: updatedEvents })
           } else {
@@ -114,6 +117,17 @@ export const useTournamentStore = create<TournamentStore>()(
             )
             set({ tournaments: updatedTournaments })
           }
+        }
+      },
+      updateJoinedStatus: (tournamentId, joined) => {
+        const { tournaments, gameEvents } = get()
+        const allGames = [...tournaments, ...gameEvents]
+        const tournament = allGames.find((t) => t.id === tournamentId)
+        if (tournament && 'playersCount' in tournament) {
+          const updatedEvents = gameEvents.map((t) =>
+            t.id === tournamentId ? { ...t, joined } : t,
+          )
+          set({ gameEvents: updatedEvents })
         }
       },
       updateScore: (tournamentId, score) => {
