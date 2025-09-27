@@ -5,7 +5,7 @@ import { GameRegistry } from "./GameFactory.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { SVGNFT } from "./Nft.sol";
 
-contract GameHub is Ownable, GameRegistry {
+contract GameHub is GameRegistry {
 
     uint256 public gameEventCount = 1;
     uint256 public constant LEADERBOARD_SIZE = 10;
@@ -71,15 +71,15 @@ contract GameHub is Ownable, GameRegistry {
     }
 
     function _onlyAdminorOwner() internal view {
-        if (msg.sender != admin || msg.sender != owner()) {
+        if (msg.sender != admin && msg.sender != owner()) {
             revert NotAdmin();
         }
     }
 
-        // CONSTRUCTOR
-      constructor(address initialAdmin, address svgNftAddress) GameRegistry() {
+    // CONSTRUCTOR
+    constructor(address initialAdmin) GameRegistry() {
         admin = initialAdmin;
-        svgNft = SVGNFT(svgNftAddress);
+        svgNft = new SVGNFT();
     }
 
     function setAdmin(address newAdmin) external onlyOwner {
