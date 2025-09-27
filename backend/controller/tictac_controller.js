@@ -50,6 +50,11 @@ function checkWinner(board) {
     return null;
 }
 
+// Validate move
+function isValidMove(board, row, col) {
+    return row >= 0 && row < 4 && col >= 0 && col < 4 && board[row][col] === "";
+}
+
 // Check if board is full
 function isBoardFull(board) {
     for (let row = 0; row < 4; row++) {
@@ -74,6 +79,15 @@ const gamePlay = (req, res) => {
         const gameId = req.params.gameId;
         const { row, col } = req.body;
 
+                // Validate input
+        if (typeof row !== 'number' || typeof col !== 'number' || 
+            row < 0 || row > 3 || col < 0 || col > 3) {
+            return res.status(400).json({
+                success: false,
+                error: "Invalid coordinates. Use numbers 0-3 for row and col."
+            });
+        }
+
         let game;
         
         // Get existing game or create new one
@@ -96,6 +110,15 @@ const gamePlay = (req, res) => {
                 }
             });
         }
+
+        // Validate move
+        if (!isValidMove(game.board, row, col)) {
+            return res.status(400).json({
+                success: false,
+                error: "Invalid move. Cell is not empty or out of bounds."
+            });
+        }
+        
 
         // Make human move
         game.board[row][col] = "X";
