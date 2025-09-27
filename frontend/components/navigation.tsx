@@ -3,16 +3,23 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useAdmin } from "@/hooks/use-admin"
 import { WalletConnect } from "./wallet-connect"
-import { Gamepad2, Home} from "lucide-react"
+import { Gamepad2, Trophy, BarChart3, Settings, Home, Shield } from "lucide-react"
 
 const playerNavItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/tournaments", label: "Tournaments", icon: Gamepad2 },
 ]
 
+const adminNavItems = [
+  { href: "/admin", label: "Admin Dashboard", icon: Shield },
+  { href: "/admin/tournaments", label: "Manage Tournaments", icon: Settings },
+]
+
 export function Navigation() {
   const pathname = usePathname()
+  const { isAdmin } = useAdmin()
 
   return (  
     <nav className="border-b border-border bg-card">
@@ -43,7 +50,29 @@ export function Navigation() {
                   </Link>
                 )
               })}
-
+ {isAdmin && (
+                <>
+                  <div className="w-px h-6 bg-border" />
+                  {adminNavItems.map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                          "flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          pathname === item.href
+                            ? "bg-destructive text-destructive-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent",
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    )
+                  })}
+                </>
+              )}
             </div>
           </div>
 
