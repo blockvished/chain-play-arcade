@@ -23,14 +23,21 @@ contract GameHub is Ownable, GameRegistry {
         uint256 winnersCount;
     }
 
+    struct GameState {
+        uint256 score;
+        string cid;
+        bool winner;
+    }
+
     address public admin;
     uint256 public adminWithdrawAllowances; // admin gets fee based on GameEvent struct
     mapping(address => uint256) public winnerWithdrawAllowances;
 
-    mapping(uint256 => mapping(address => uint256)) public scores;
-    mapping(uint256 => mapping(address => bool)) public joined;
-    mapping(uint256 => address[LEADERBOARD_SIZE]) public topPlayers;
-    mapping(uint256 => GameEvent) public gamesEvents;
+    mapping(uint256 gameEventId=> mapping(address => uint256)) public scores;
+    mapping(uint256 gameEventId=> mapping(address => bool)) public joined;
+    mapping(uint256 gameEventId=> address[LEADERBOARD_SIZE]) public topPlayers;
+    mapping(uint256 gameEventId=> GameEvent) public gamesEvents;
+    mapping(uint256 gameEventId=> mapping(address => GameState[])) public gameStates;
 
     event GameCreated(uint256 gameEventId, uint256 referencedGameId, string eventName, uint256 startTime, uint256 endTime, bool active, uint256 durationMinutes, uint256 minStakeAmount);
     event PlayerJoined(uint256 gameEventId, address player, uint256 pooledAmt, uint256 playersCount);
@@ -198,7 +205,13 @@ contract GameHub is Ownable, GameRegistry {
         emit ScoresFinalized(gameEventId);
     }
 
-
+    function uploadPlayerGameState(uint256 gameEventId, address player, uint256 score, bool winner, string calldata cid) external onlyAdmin {
+        gameStates[gameEventId][player].push(GameState({
+            score: score,
+            cid: cid,
+            winner: winner
+        }));
+    }
     
     function claimPrize() external {
         uint256 winnerAmount = winnerWithdrawAllowances[msg.sender];
