@@ -141,6 +141,43 @@ export const GameHubABI = [
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "joinGame",
+    "inputs": [
+      {
+        "name": "gameEventId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "joined",
+    "inputs": [
+      {
+        "name": "gameEventId",
+        "type": "uint256",
+        "internalType": "number"
+      },
+      {
+        "name": "playerAddr",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
   }
 ] as const
 
@@ -151,9 +188,11 @@ export type GameEvent = {
   endTime: bigint
   referencedGameId: bigint
   durationMinutes: bigint
+  eventId: number
   minStakeAmt: bigint
   pooledAmt: bigint
   scoresFinalized: boolean
   playersCount: bigint
   winnersCount: bigint
+  joined?: boolean
 }

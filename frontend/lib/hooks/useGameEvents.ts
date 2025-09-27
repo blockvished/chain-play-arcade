@@ -7,8 +7,9 @@ import type { GameEvent } from "@/lib/contracts/GameHubABI"
 import type { GameEventTournament } from "@/lib/store"
 
 // Utility function to convert GameEvent to GameEventTournament
-const convertToGameEventTournament = (gameEvent: GameEvent, eventId: number): GameEventTournament => {
+const convertToGameEventTournament = (gameEvent: GameEvent, index: number): GameEventTournament => {
   // Convert wei to ETH
+
   const weiToEth = (wei: bigint) => {
     return (Number(wei) / 1e18).toFixed(4)
   }
@@ -33,11 +34,12 @@ const convertToGameEventTournament = (gameEvent: GameEvent, eventId: number): Ga
   }
 
   return {
-    id: eventId.toString(),
+    id: index.toString(),
     active: gameEvent.active,
     eventName: gameEvent.eventName,
     startTime,
     endTime,
+    eventId: gameEvent.eventId,
     referencedGameId: gameEvent.referencedGameId.toString(),
     durationMinutes: Number(gameEvent.durationMinutes),
     minStakeAmt: weiToEth(gameEvent.minStakeAmt),
@@ -45,10 +47,11 @@ const convertToGameEventTournament = (gameEvent: GameEvent, eventId: number): Ga
     scoresFinalized: gameEvent.scoresFinalized,
     playersCount: Number(gameEvent.playersCount),
     winnersCount: Number(gameEvent.winnersCount),
+    joined: gameEvent.joined,
   }
 }
 
-export const useGameEvents = () => {
+export const useGameEvents = (playerAddr?: string) => {
   const { setGameEvents, setLoading, setError, isLoading, error } = useTournamentStore()
   const [isInitialized, setIsInitialized] = useState(false)
 
@@ -58,6 +61,7 @@ export const useGameEvents = () => {
       setError(null)
 
       console.log("🔄 Fetching game events from GameHub...")
+      
       const gameHubService = getGameHubService()
       
       console.log("📊 Getting game event count...")
@@ -71,7 +75,7 @@ export const useGameEvents = () => {
         return
       }
 
-      const gameEvents = await gameHubService.getAllGameEvents()
+      const gameEvents = await gameHubService.getAllGameEvents(playerAddr)
       console.log("📊 Raw game events:", gameEvents)
 
       // Convert GameEvents to GameEventTournaments
@@ -101,11 +105,10 @@ export const useGameEvents = () => {
     if (!isInitialized) {
       fetchGameEvents()
     }
-  }, [isInitialized])
+  }, [isInitialized, playerAddr])
 
   const refetch = () => {
     setIsInitialized(false)
-    fetchGameEvents()
   }
 
   return {

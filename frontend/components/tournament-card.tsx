@@ -7,12 +7,25 @@ import { Progress } from "@/components/ui/progress"
 import type { Tournament, GameEventTournament } from "@/lib/store"
 import { Clock, Users, Trophy, Coins } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { useAccount, useWalletClient } from "wagmi"
+import { ethers } from "ethers"
+import { getGameHubService } from "@/lib/services/gameHubService"
+import { useTournamentStore } from "@/lib/store"
 
 interface TournamentCardProps {
   tournament: Tournament | GameEventTournament
+  onTournamentJoined?: () => void
 }
 
-export function TournamentCard({ tournament }: TournamentCardProps) {
+export function TournamentCard({ tournament, onTournamentJoined }: TournamentCardProps) {
+  const [isJoining, setIsJoining] = useState(false)
+  const { address, isConnected } = useAccount()
+  const { data: walletClient } = useWalletClient()
+  const { joinTournament, updateJoinedStatus } = useTournamentStore()
+  const router = useRouter()
+
   const getStatusColor = (status: "upcoming" | "active" | "ended") => {
     switch (status) {
       case "active":
@@ -23,6 +36,70 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
         return "bg-gray-500/20 text-gray-400 border-gray-500/30"
       default:
         return "bg-gray-500/20 text-gray-400 border-gray-500/30"
+    }
+  }
+
+  const handleJoinTournament = async () => {
+    if (!isConnected || !walletClient) {
+      alert("Please connect your wallet first")
+      return
+    }
+
+    if (!('eventId' in tournament)) {
+      alert("This tournament type is not supported for blockchain joining yet")
+      return
+    }
+
+    if ('joined' in tournament && tournament.joined) {
+      router.push(`/tournaments/${tournament.eventId}`)
+      return
+    }
+
+    setIsJoining(true)
+    try {
+      const gameHubService = getGameHubService()
+      const stakeAmt = ethers.parseEther(tournament.minStakeAmt)
+      
+      console.log(`Joining game event ${tournament.eventId} with stake ${tournament.minStakeAmt} ETH`)
+      
+      const provider = new ethers.BrowserProvider(walletClient)
+      const signer = await provider.getSigner()
+      
+      const txHash = await gameHubService.joinGame(
+        BigInt(tournament.eventId),
+        stakeAmt,
+        signer
+      )
+      
+      console.log("Transaction successful:", txHash)
+      
+      try {
+        const gameHubService = getGameHubService()
+        const refreshedJoinedStatus = await gameHubService.refreshJoinedStatus(
+          tournament.eventId,
+          address!
+        )
+        
+        if (refreshedJoinedStatus) {
+          updateJoinedStatus(tournament.eventId.toString(), true)
+          console.log("✅ Successfully joined tournament!")
+        } else {
+          console.warn("⚠️ Joined status still false after transaction, may need more time to propagate")
+          updateJoinedStatus(tournament.eventId.toString(), true)
+        }
+      } catch (error) {
+        console.error("Error refreshing joined status:", error)
+        joinTournament(tournament.eventId.toString())
+      }
+      
+      if (onTournamentJoined) {
+        onTournamentJoined()
+      }
+    } catch (error) {
+      console.error("Error joining tournament:", error)
+      alert(`Failed to join tournament: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsJoining(false)
     }
   }
 
@@ -112,15 +189,20 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
             <Progress value={playerProgress} className="h-2" />
           )}
         </div>
-
         <div className="flex gap-2 pt-2">
-          <Link href={`/tournaments/${tournament.id}`} className="flex-1">
+          <Link href={`/tournaments/${'eventId' in tournament ? tournament.eventId : tournament.id}`} className="flex-1">
             <Button variant="outline" className="w-full bg-transparent">
               View Details
             </Button>
           </Link>
           {getEventStatus() === "active" && (!('maxPlayers' in tournament) || ('currentPlayers' in tournament ? tournament.currentPlayers : 0) < tournament.maxPlayers) && (
-            <Button className="flex-1 game-glow">Join Tournament</Button>
+            <Button 
+              className="flex-1 game-glow" 
+              onClick={handleJoinTournament}
+              disabled={isJoining}
+            >
+              {isJoining ? "Joining..." : ('joined' in tournament && tournament.joined ? "Play" : "Join Tournament")}
+            </Button>
           )}
           {getEventStatus() === "upcoming" && (
             <Button variant="secondary" className="flex-1">

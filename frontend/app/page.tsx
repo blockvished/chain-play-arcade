@@ -9,10 +9,14 @@ import { Button } from "@/components/ui/button"
 import { Gamepad2, Trophy, Clock, RefreshCw, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { TournamentCard } from "@/components/tournament-card"
+import { useAccount } from "wagmi"
 
 export default function Dashboard() {
+  const { address, isConnected } = useAccount()
   const { getAllGames, gameEvents, isLoading, error } = useTournamentStore()
-  const { refetch } = useGameEvents()
+  
+  const { refetch } = useGameEvents(isConnected ? address : undefined)
+
 
   const allGames = getAllGames()
   const activeTournaments = allGames.filter((t: any) => 'active' in t ? t.active : false)
@@ -135,7 +139,11 @@ export default function Dashboard() {
           {activeTournaments.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {activeTournaments.slice(0, 6).map((tournament) => (
-                <TournamentCard key={tournament.id} tournament={tournament} />
+                <TournamentCard 
+                  key={tournament.id} 
+                  tournament={tournament} 
+                  onTournamentJoined={refetch}
+                />
               ))}
             </div>
           ) : (
