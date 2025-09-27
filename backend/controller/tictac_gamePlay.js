@@ -132,13 +132,7 @@ function generatePoints(status, moves, time) {
     }
     
     return {
-        totalPoints: Math.max(totalPoints, 0), // Never go below 0
-        breakdown: {
-            base: status === "won" ? basePoints : (status === "lost" ? -50 : 0),
-            speed: averageTimePerMove < 5 ? 20 : (averageTimePerMove > 15 ? -10 : 0),
-            efficiency: status === "won" ? (moves <= 8 ? 30 : (moves <= 12 ? 15 : 0)) : 0,
-            time: status === "won" && timeInSeconds < 60 ? 25 : 0
-        }
+        totalPoints: totalPoints, // Never go below 0
     };
 }
 
