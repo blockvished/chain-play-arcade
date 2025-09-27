@@ -8,7 +8,7 @@ const rpcUrl = "https://testnet.evm.nodes.onflow.org";
 const contractAddress = "0xFd860D2FDeE44Bc6810251b6E7369CD3119C8527";
 
 // ⚠️ Replace with your PRIVATE KEY (testnet only, never commit to git!)
-const privateKey = "3ca3cc6e57ed9a1f65f2a9163231c3daa069a6393186096e43493e3076eebb6c";
+const privateKey = "pk";
 
 async function main() {
   const contract = getWriteContract(rpcUrl, contractAddress, privateKey);
