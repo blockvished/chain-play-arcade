@@ -1,13 +1,12 @@
 import { createConfig, http } from "wagmi"
-import { mainnet, sepolia } from "wagmi/chains"
+import { flowTestnet } from "wagmi/chains"
 import { getDefaultConfig } from "connectkit"
 
 export const config = createConfig(
   getDefaultConfig({
-    chains: [mainnet, sepolia],
+    chains: [flowTestnet],
     transports: {
-      [mainnet.id]: http(),
-      [sepolia.id]: http(),
+      [flowTestnet.id]: http("https://testnet.evm.nodes.onflow.org"),
     },
     walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "",
     appName: "ChainPlay Arcade",

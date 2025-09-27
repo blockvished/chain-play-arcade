@@ -46,6 +46,7 @@
     "connectkit": "latest",
     "date-fns": "latest",
     "embla-carousel-react": "8.5.1",
+    "ethers": "^6.15.0",
     "geist": "latest",
     "immer": "latest",
     "input-otp": "1.4.1",
