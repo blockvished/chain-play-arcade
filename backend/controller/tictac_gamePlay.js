@@ -2,8 +2,10 @@ const { AI_Player } = require("../utils/tictac_utils");
 
 const games = new Map();
 
-function createGame() {
-    const gameId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+function createGame(gameId) {
+    if (!gameId) {
+        throw new Error("Game ID is required");
+    }
     const game = {
         id: gameId,
         board: [
@@ -160,7 +162,7 @@ const gamePlay = (req, res) => {
         if (gameId && games.has(gameId)) {
             game = games.get(gameId);
         } else {
-            game = createGame();
+            game = createGame(gameId);
         }
         
         // Check if game is over
