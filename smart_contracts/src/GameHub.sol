@@ -197,8 +197,8 @@ contract GameHub is Ownable, GameRegistry {
         } else if (ge.winnersCount == 3) {
             adminWithdrawAllowances = tenPercentOfPool;
 
-            winnerWithdrawAllowances[players[0]] = totalPrizePool - (5*tenPercentOfPool);
-            winnerWithdrawAllowances[players[1]] = totalPrizePool - (3*tenPercentOfPool);
+            winnerWithdrawAllowances[players[0]] =  5*tenPercentOfPool;
+            winnerWithdrawAllowances[players[1]] =  3*tenPercentOfPool;
             winnerWithdrawAllowances[players[2]] = tenPercentOfPool;
         }
 
