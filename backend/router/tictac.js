@@ -2,7 +2,7 @@
 
 const express = require("express");
 const router = express.Router();
-const { gamePlay } = require("../controller/tictac_controller");
+const { gamePlay } = require("../controller/tictac_gamePlay");
 
 router.post('/play', gamePlay);
 
