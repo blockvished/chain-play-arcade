@@ -60,6 +60,21 @@ const AI_Player = (board , last_move , current_move) => {
         return lines;
     }
 
+        //simulates the future board after the ai move.
+    function simulateFutureBoard(gameBoard, history, aiMove) {
+        const futureBoard = gameBoard.map(row => [...row]);
+        const futureHistory = [...history, { ...aiMove, player: AI }];
+        futureBoard[aiMove.row][aiMove.col] = AI;
+        const aiMoves = futureHistory.filter(move => move.player === AI);
+    
+        if (aiMoves.length > 4) {
+            const disappearing = aiMoves[aiMoves.length - 5];
+            futureBoard[disappearing.row][disappearing.col] = EMPTY;
+        }
+    
+        return futureBoard;
+    }
+
     //returns the disappearing moves in the history.
     function getDisappearingMoves(history) {
         const disappearingMoves = [];
@@ -82,7 +97,8 @@ const AI_Player = (board , last_move , current_move) => {
     function evaluatePosition(gameBoard, history, row, col) {
         let totalScore = 0;
         const move = { row, col };
-        const lines = getAllLines(move);
+        const futureBoard = simulateFutureBoard(gameBoard, history, move);
+        const lines = getAllLines(futureBoard);
         for (const line of lines) {
             const positionInLine = line.positions.findIndex(pos => pos.row === row && pos.col === col);
             if (positionInLine !== -1) {
@@ -114,6 +130,30 @@ const AI_Player = (board , last_move , current_move) => {
         return totalScore;
     }
 
+    // find immediate tactical moves (win first, then block)
+    function findTacticalMove(gameBoard) {
+        const lines = getAllLines(gameBoard);
+        // Try to win
+        for (const line of lines) {
+            const aiCount = line.cells.filter(cell => cell === AI).length;
+            const emptyCount = line.cells.filter(cell => cell === EMPTY).length;
+            if (aiCount === 3 && emptyCount === 1) {
+                const idx = line.cells.findIndex(cell => cell === EMPTY);
+                return line.positions[idx];
+            }
+        }
+        // Block opponent
+        for (const line of lines) {
+            const humanCount = line.cells.filter(cell => cell === HUMAN).length;
+            const emptyCount = line.cells.filter(cell => cell === EMPTY).length;
+            if (humanCount === 3 && emptyCount === 1) {
+                const idx = line.cells.findIndex(cell => cell === EMPTY);
+                return line.positions[idx];
+            }
+        }
+        return null;
+    }
+
     //returns the best move for the ai.0
     const emptyCells = getEmptyCells(board);
 
@@ -134,6 +174,11 @@ const AI_Player = (board , last_move , current_move) => {
         return { row: 0, col: 0 };
     }
         
+    // Immediate win/block if available
+    const tactical = findTacticalMove(board);
+    if (tactical) {
+        return tactical;
+    }
     let bestMove = null;
     let bestScore = -Infinity;
     for (const cell of emptyCells) {
