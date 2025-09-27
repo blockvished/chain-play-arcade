@@ -11,7 +11,7 @@ contract GameRegistry is Ownable {
         string description;
     }
 
-    uint256 public gameIdCount = 1;
+    uint256 public nextGameCount = 1;
 
     mapping(uint256 gameId => GameDefinition) private gameDefinitions;
     GameDefinition[] private allGames;
@@ -26,7 +26,7 @@ contract GameRegistry is Ownable {
         string calldata image,
         string calldata description
     ) public onlyOwner {
-        uint256 gameId = gameIdCount;
+        uint256 gameId = nextGameCount;
 
         GameDefinition memory newGame = GameDefinition({
             id: gameId,
@@ -40,7 +40,7 @@ contract GameRegistry is Ownable {
 
         emit GameDefinitionCreated(gameId, name, image);
 
-        gameIdCount++;
+        nextGameCount++;
     }
 
     function getGameDefinition(uint256 gameId) public view returns (GameDefinition memory) {
