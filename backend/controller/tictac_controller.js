@@ -74,10 +74,10 @@ function applyMemoryDecay(board, moveHistory, player) {
 
 const gamePlay = (req, res) => {
     try{
-        const gameId = req.params.gameId;
+        const gameId = req.query.gameId;
         const { row, col } = req.body;
 
-                // Validate input
+        // Validate input
         if (typeof row !== 'number' || typeof col !== 'number' || 
             row < 0 || row > 3 || col < 0 || col > 3) {
             return res.status(400).json({
