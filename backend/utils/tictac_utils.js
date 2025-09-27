@@ -1,0 +1,1 @@
+console.log("utility function for help better structure");
