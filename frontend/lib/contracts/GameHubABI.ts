@@ -1,6 +1,29 @@
 export const GameHubABI = [
   {
     "type": "function",
+    "name": "createGameDefinition",
+    "inputs": [
+      {
+        "name": "name",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "image",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "description",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "gameEventCount",
     "inputs": [],
     "outputs": [
