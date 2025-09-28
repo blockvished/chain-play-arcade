@@ -8,7 +8,10 @@
 ![Foundry](https://img.shields.io/badge/Foundry-000000?style=for-the-badge&logo=foundry&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
 
-Chain Play Arcade is a blockchain-native gaming ecosystem where players can compete in skill-based tournaments for real rewards. The platform leverages smart contracts for transparent and trustless event management, prize distribution, and game logic.
+Our smart contract is deployed on [Flow testnet](https://testnet.flowscan.io/evm/contract/0x05CaE15c24b3Fcd9374998e6fB59aE893395A6B9)
+
+
+Chain Play Arcade is an On-chain gaming ecosystem where players can compete in skill-based tournaments for real rewards. The platform leverages smart contracts for transparent and trustless event management, prize distribution, and game logic.
 
 ---
 
@@ -33,22 +36,25 @@ Here’s the core gameplay loop:
 
 1.  **Admin Portal**: Event organizers use a dedicated admin interface to create and define new games and tournaments directly on the blockchain. They can configure crucial parameters like prize pools, minimum stake amounts, and event durations through our `GameHub` and `GameFactory` smart contracts.
 
-2.  **Player Dashboard**: Players can browse a list of active tournaments, view their details, and stake tokens to join the competition.
+2.  **Player Dashboard**: Players can browse a list of tournaments, and we have to stake crypto to join a tournament after that, play button enables to play the game.
 
 3.  **Unique Gameplay**: Our first featured game is a unique **4x4 Tic-Tac-Toe variant**. To win, a player must align 4 of their marks in a row, column, or diagonal. The twist? **Every 4th turn, your move from 4 turns prior is erased**. This dynamic rule prevents draws and encourages strategic, forward-thinking play.
 
-4.  **AI Post-Match Analysis**: After each match, a comprehensive result sheet is generated (total moves, time played, move history). This data is fed to an autonomous AI agent hosted on **AgentVerse**, which provides a strategic analysis of the game, offering insights on how players could have improved their performance.
+4. **Blockchain usecase**: The state of gameplay is stored on **walrus** storage, and then its unique blobId is stored in the smartcontract to view the state of everygame of the event.
 
-5.  **Automated Rewards**: When a tournament's duration ends, the smart contract automatically calculates the final leaderboard and distributes the prize pool to the top-performing players. No manual intervention is required.
+### future scope (only frontend, smartcontract logic done)
+5. **AI Post-Match Analysis**: After each match, a comprehensive result sheet is generated (total moves, time played, move history). This data is fed to an autonomous AI agent hosted on **AgentVerse**, which provides a strategic analysis of the game, offering insights on how players could have improved their performance.
+
+6.  **Claim Rewards&NFTs**: When a tournament's duration ends, the smart contract automatically calculates the final leaderboard and distributes the prize pool to the top-performing players. When claiming prizes unique NFT's will also be minted on the way .
 
 
 
 ---
 
-## ✨ Key Features
+## ✨ Partners integration:
 
--   **Decentralized Game & Tournament Creation**: Admins can launch new competitive events on-chain.
--   **On-Chain Staking & Prize Pools**: Securely manage entry fees and prize money using smart contracts.
+-   **Flow**: We have deployed our whole Game logic and Gameplay smartcontracts on the flow testnet
+-   **Walrus**: Used Walrus as storage paltform for our gamestate, which is crutial for our project idea. later published blobId on the blockchain for transparency and data retrieval
 -   **Provably Fair Gameplay**: Game logic is executed on-chain for maximum transparency.
 -   **AI-Powered Strategic Analysis**: Get personalized feedback on your gameplay from an AI coach.
 -   **Automated, Trustless Payouts**: Winners are rewarded automatically from the prize pool.
@@ -64,6 +70,8 @@ This project is a full-stack dApp with three main components:
     -   **Solidity**: For writing the smart contracts.
     -   **Foundry**: For compiling, testing, and deploying contracts.
     -   **OpenZeppelin**: For secure, community-vetted contract standards (implied).
+    -   **Walrus**: Walrus for storing the game states in json.
+    -   **Flow**: Deployed on flow blockchain.
 
 -   **Frontend**
     -   **Next.js**: React framework for the user interface.
@@ -174,3 +182,5 @@ Don't forget to give the project a star! Thanks again!
 ## 📜 License
 
 Distributed under the MIT License. See `LICENSE` for more information.
+
+
