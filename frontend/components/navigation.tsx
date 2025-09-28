@@ -9,12 +9,12 @@ import { Gamepad2, Trophy, BarChart3, Settings, Home, Shield } from "lucide-reac
 
 const playerNavItems = [
   { href: "/", label: "Dashboard", icon: Home },
-  { href: "/tournaments", label: "Tournaments", icon: Gamepad2 },
+  // { href: "/tournaments", label: "Tournaments", icon: Gamepad2 },
 ]
 
 const adminNavItems = [
   { href: "/admin", label: "Admin Dashboard", icon: Shield },
-  { href: "/admin/tournaments", label: "Manage Tournaments", icon: Settings },
+  // { href: "/admin/tournaments", label: "Manage Tournaments", icon: Settings },
 ]
 
 export function Navigation() {

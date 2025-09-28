@@ -6,7 +6,10 @@ import { Badge } from "@/components/ui/badge"
 import { X, Circle, RotateCcw, Wifi, WifiOff } from "lucide-react"
 import { gameApiService, boardUtils } from "@/lib/api/gameApi"
 import { useRouter, useSearchParams } from "next/navigation"
+import { ethers } from "ethers"
+import { GameHubABI, type GameEvent } from "@/lib/contracts/GameHubABI"
 
+// Define your ABI
 type Player = "X" | "O" | null
 type Board = Player[]
 
@@ -32,7 +35,79 @@ export function TicTacToe({ onScoreUpdate, onGameEnd, tournamentId, gameId: prop
   const [isLoading, setIsLoading] = useState(false)
   const [gameMessage, setGameMessage] = useState("")
   const [gamePoints, setGamePoints] = useState(0)
+  const [gameData, setGameData] = useState<any>(null)
 
+  // Upload turnLog to Walrus
+  const uploadTurnLogToWalrus = async (turnLog: any[]) => {
+    let walrusCID = null;
+    try {
+      const publisherUrl = "https://publisher.walrus-testnet.walrus.space/v1/blobs";
+      const encoder = new TextEncoder();
+      const res = await fetch(publisherUrl, {
+        method: "PUT",
+        body: encoder.encode(JSON.stringify(turnLog)),
+        headers: {
+          "Content-Type": "application/octet-stream",
+        },
+      });
+
+      if (!res.ok) throw new Error(`Upload failed: ${res.status} ${res.statusText}`);
+
+      const result = await res.json();
+      walrusCID = result.newlyCreated.blobObject.blobId;
+
+      console.log("Turn log uploaded to Walrus:", walrusCID);
+      
+      // Upload game state to contract after Walrus upload
+      if (walrusCID && gameData && tournamentId) {
+        const playerAddress = wallet.address;
+        const winner = gameData.winner || "none";
+        await uploadGameState(tournamentId, playerAddress, gamePoints, winner, walrusCID);
+      }
+      
+      return walrusCID;
+    } catch (err) {
+      console.error("Failed to upload turnLog:", err);
+      return null;
+    }
+  };
+  // 1. Setup provider + wallet (private key must be admin/owner account)
+  const provider = new ethers.JsonRpcProvider("https://testnet.evm.nodes.onflow.org", {
+    name: "flow-testnet",
+    chainId: 545
+  }); 
+  const privateKey = process.env.NEXT_PUBLIC_PRIVATE_KEY;
+  if (!privateKey) {
+    throw new Error("Private key is not defined in environment variables");
+  }
+  const wallet = new ethers.Wallet(privateKey, provider);
+  
+  // 2. Connect contract with proper contract address
+  const contractAddress = "0x05CaE15c24b3Fcd9374998e6fB59aE893395A6B9"; // GameHub contract address
+  const gameHub = new ethers.Contract(contractAddress, GameHubABI, wallet);
+  // 3. Upload game state to contract
+  async function uploadGameState(gameEventId: string, player: string, score: number, winner: string, cid: string) {
+    try {
+      // Convert score to uint256 compatible value (handle negative scores)
+      const uint256Score = score < 0 ? 0 : Math.abs(score);
+      
+      const tx = await gameHub.uploadPlayerGameState(
+        gameEventId,
+        player,
+        uint256Score,
+        winner,
+        cid,
+        { gasLimit: 500_000 }  // adjust if needed
+      );
+      console.log("Tx sent:", tx.hash);
+      console.log("Score converted from", score, "to", uint256Score);
+  
+      const receipt = await tx.wait();
+      console.log("Tx confirmed:", receipt, receipt.transactionHash);
+    } catch (err) {
+      console.error("Error uploading game state:", err);
+    }
+  }
   // Initialize game with API
   const initializeGame = async () => {
     if (!propGameId) {
@@ -76,31 +151,35 @@ export function TicTacToe({ onScoreUpdate, onGameEnd, tournamentId, gameId: prop
       if (response.success && response.game) {
         const gameData = response.game
         
+        // Store gameData in state
+        setGameData(gameData)
+        
         // Update board with API response (2D array converted to 1D for UI)
         const newBoard = boardUtils.board2DTo1D(gameData.board)
         setBoard(newBoard)
         setTotalMoves(gameData.moveCount)
 
         // Update game message and points from API response
-        setGameMessage(gameData.message)
-        setGamePoints(gameData.points.totalPoints)
+        setGameMessage(gameData.message || "")
+        setGamePoints(gameData.points?.totalPoints || 0)
 
         // Check game status from API
+        const pointsToAdd = gameData.points?.totalPoints || 0
         if (gameData.status === "won") {
           setGameStatus("won")
-          const newScore = score + gameData.points.totalPoints
+          const newScore = score + pointsToAdd
           setScore(newScore)
           onScoreUpdate(newScore)
           onGameEnd(true)
         } else if (gameData.status === "lost") {
           setGameStatus("lost")
-          const newScore = score + gameData.points.totalPoints
+          const newScore = score + pointsToAdd
           setScore(newScore)
           onScoreUpdate(newScore)
           onGameEnd(false)
         } else if (gameData.status === "draw") {
           setGameStatus("draw")
-          const newScore = score + gameData.points.totalPoints
+          const newScore = score + pointsToAdd
           setScore(newScore)
           onScoreUpdate(newScore)
         } else {
@@ -140,6 +219,14 @@ export function TicTacToe({ onScoreUpdate, onGameEnd, tournamentId, gameId: prop
     }
   }, [gameStatus, gameId, score])
 
+  // Upload turnLog to Walrus when gameData has turnLog
+  useEffect(() => {
+    if (gameData && gameData.turnLog && Array.isArray(gameData.turnLog)) {
+      console.log("GameData with turnLog received, uploading to Walrus...")
+      uploadTurnLogToWalrus(gameData.turnLog)
+    }
+  }, [gameData])
+
   const resetGame = () => {
     // Generate new game ID
     const newGameId = Date.now().toString() + Math.random().toString(36).substr(2, 9)
@@ -159,6 +246,7 @@ export function TicTacToe({ onScoreUpdate, onGameEnd, tournamentId, gameId: prop
     setGamesPlayed((prev) => prev + 1)
     setGameMessage("")
     setGamePoints(0)
+    setGameData(null)
     setGameId(newGameId)
     
     // Initialize new game

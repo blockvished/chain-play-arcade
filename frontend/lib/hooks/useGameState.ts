@@ -151,18 +151,18 @@ export const useGameState = (
         const moveData = {
           gameId,
           playerMove: { row, col, player: "X" as const },
-          board: boardUtils.boardToApi(newBoard),
+          board: boardUtils.board1DTo2D(newBoard),
           moveNumber: newMoveNumber,
         }
 
-        const response = await apiMakeMove(moveData)
-        if (response.success && response.aiMove) {
+        const response = await apiMakeMove(gameId, row, col)
+        if (response.success && response.game?.aiMove) {
           // Apply AI move
-          const aiIndex = boardUtils.coordsToIndex(response.aiMove.row, response.aiMove.col)
+          const aiIndex = boardUtils.coordsToIndex(response.game.aiMove.row, response.game.aiMove.col)
           const aiMove: Move = { player: "O", index: aiIndex, moveNumber: newMoveNumber + 1 }
           const aiHistory = [...newHistory, aiMove]
           
-          let aiBoard = response.board ? boardUtils.apiToBoard(response.board) : newBoard
+          let aiBoard = response.game?.board ? boardUtils.board2DTo1D(response.game.board) : newBoard
           aiBoard[aiIndex] = "O"
           
           // Check if AI move triggers 5th move removal

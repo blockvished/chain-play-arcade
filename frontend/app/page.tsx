@@ -40,12 +40,12 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Overview */}
-        <StatsOverview
+        {/* <StatsOverview
           totalTournaments={allGames.length}
           activeTournaments={activeTournaments.length}
           totalPrizePool={totalPrizePool}
           userWinnings="0.23"
-        />
+        /> */}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
@@ -60,9 +60,7 @@ export default function Dashboard() {
               <p className="text-sm text-muted-foreground mb-4">
                 Join active tournaments and start earning rewards immediately.
               </p>
-              <Link href="/tournaments">
-                <Button className="w-full bg-green-600 hover:bg-green-700">Browse Tournaments</Button>
-              </Link>
+             
             </CardContent>
           </Card>
 
@@ -78,8 +76,8 @@ export default function Dashboard() {
                 Check your ranking and see top players across all tournaments.
               </p>
               <Link href="/leaderboard">
-                <Button variant="outline" className="w-full border-yellow-500/30 hover:bg-yellow-500/10 bg-transparent">
-                  View Rankings
+                <Button variant="outline" disabled className="w-full border-yellow-500/30 hover:bg-yellow-500/10 bg-transparent">
+                  Coming Soon
                 </Button>
               </Link>
             </CardContent>
@@ -111,7 +109,7 @@ export default function Dashboard() {
         <section className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <h2 className="text-2xl font-bold text-foreground">Active Tournaments</h2>
+              <h2 className="text-2xl font-bold text-foreground">Tournaments</h2>
               {isLoading && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <RefreshCw className="h-4 w-4 animate-spin" />
@@ -130,9 +128,9 @@ export default function Dashboard() {
                 <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                 Refresh
               </Button>
-              <Link href="/tournaments">
+              {/* <Link href="/tournaments">
                 <Button variant="outline">View All</Button>
-              </Link>
+              </Link> */}
             </div>
           </div>
 
