@@ -51,7 +51,9 @@ export function TournamentCard({ tournament, onTournamentJoined }: TournamentCar
     }
 
     if ('joined' in tournament && tournament.joined) {
-      router.push(`/tournaments/${tournament.eventId}`)
+      // router.push(`/tournaments/${tournament.eventId}`)
+      const gameId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+      router.push(`/game/tic-tac-toe?tournament=${tournament.eventId}&gameId=${gameId}`)
       return
     }
 
@@ -190,11 +192,6 @@ export function TournamentCard({ tournament, onTournamentJoined }: TournamentCar
           )}
         </div>
         <div className="flex gap-2 pt-2">
-          <Link href={`/tournaments/${'eventId' in tournament ? tournament.eventId : tournament.id}`} className="flex-1">
-            <Button variant="outline" className="w-full bg-transparent">
-              View Details
-            </Button>
-          </Link>
           {getEventStatus() === "active" && (!('maxPlayers' in tournament) || ('currentPlayers' in tournament ? tournament.currentPlayers : 0) < tournament.maxPlayers) && (
             <Button 
               className="flex-1 game-glow" 

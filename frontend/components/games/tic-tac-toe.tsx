@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { X, Circle, RotateCcw } from "lucide-react"
+import { X, Circle, RotateCcw, Wifi, WifiOff } from "lucide-react"
+import { gameApiService, boardUtils } from "@/lib/api/gameApi"
+import { useRouter, useSearchParams } from "next/navigation"
 
 type Player = "X" | "O" | null
 type Board = Player[]
@@ -11,148 +13,178 @@ type Board = Player[]
 interface TicTacToeProps {
   onScoreUpdate: (score: number) => void
   onGameEnd: (won: boolean) => void
+  tournamentId?: string
+  gameId?: string
 }
 
-export function TicTacToe({ onScoreUpdate, onGameEnd }: TicTacToeProps) {
-  const [board, setBoard] = useState<Board>(Array(9).fill(null))
+export function TicTacToe({ onScoreUpdate, onGameEnd, tournamentId, gameId: propGameId }: TicTacToeProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  
+  const [board, setBoard] = useState<Board>(Array(16).fill(null))
   const [isPlayerTurn, setIsPlayerTurn] = useState(true)
   const [gameStatus, setGameStatus] = useState<"playing" | "won" | "lost" | "draw">("playing")
   const [score, setScore] = useState(0)
   const [gamesPlayed, setGamesPlayed] = useState(0)
+  const [totalMoves, setTotalMoves] = useState(0)
+  const [gameId, setGameId] = useState("")
+  const [isOnline, setIsOnline] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [gameMessage, setGameMessage] = useState("")
+  const [gamePoints, setGamePoints] = useState(0)
 
-  const winningCombinations = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6],
-  ]
-
-  const checkWinner = (board: Board): Player => {
-    for (const combination of winningCombinations) {
-      const [a, b, c] = combination
-      if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-        return board[a]
-      }
+  // Initialize game with API
+  const initializeGame = async () => {
+    if (!propGameId) {
+      console.error("No gameId provided in URL parameters")
+      setIsOnline(false)
+      return
     }
-    return null
-  }
 
-  const isBoardFull = (board: Board): boolean => {
-    return board.every((cell) => cell !== null)
-  }
+    setGameId(propGameId)
+    setIsLoading(true)
 
-  const getAvailableMoves = (board: Board): number[] => {
-    return board.map((cell, index) => (cell === null ? index : -1)).filter((index) => index !== -1)
-  }
-
-  const minimax = (board: Board, depth: number, isMaximizing: boolean): number => {
-    const winner = checkWinner(board)
-    if (winner === "O") return 10 - depth
-    if (winner === "X") return depth - 10
-    if (isBoardFull(board)) return 0
-
-    if (isMaximizing) {
-      let bestScore = Number.NEGATIVE_INFINITY
-      for (const move of getAvailableMoves(board)) {
-        const newBoard = [...board]
-        newBoard[move] = "O"
-        const score = minimax(newBoard, depth + 1, false)
-        bestScore = Math.max(score, bestScore)
+    try {
+      const response = await gameApiService.initializeGame(propGameId, "tic-tac-toe", tournamentId)
+      if (response.success) {
+        setIsOnline(true)
+        console.log("Game initialized successfully:", response.message)
+      } else {
+        console.error("Failed to initialize game:", response.error)
+        setIsOnline(false)
       }
-      return bestScore
-    } else {
-      let bestScore = Number.POSITIVE_INFINITY
-      for (const move of getAvailableMoves(board)) {
-        const newBoard = [...board]
-        newBoard[move] = "X"
-        const score = minimax(newBoard, depth + 1, true)
-        bestScore = Math.min(score, bestScore)
-      }
-      return bestScore
+    } catch (error) {
+      console.error("Error initializing game:", error)
+      setIsOnline(false)
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const getBestMove = (board: Board): number => {
-    let bestScore = Number.NEGATIVE_INFINITY
-    let bestMove = -1
+  const handleCellClick = async (index: number) => {
+    if (board[index] || !isPlayerTurn || gameStatus !== "playing" || isLoading) return
 
-    for (const move of getAvailableMoves(board)) {
-      const newBoard = [...board]
-      newBoard[move] = "O"
-      const score = minimax(newBoard, 0, false)
-      if (score > bestScore) {
-        bestScore = score
-        bestMove = move
-      }
-    }
-
-    return bestMove
-  }
-
-  const handleCellClick = (index: number) => {
-    if (board[index] || !isPlayerTurn || gameStatus !== "playing") return
-
-    const newBoard = [...board]
-    newBoard[index] = "X"
-    setBoard(newBoard)
+    setIsLoading(true)
     setIsPlayerTurn(false)
 
-    const winner = checkWinner(newBoard)
-    if (winner === "X") {
-      setGameStatus("won")
-      const newScore = score + 100
-      setScore(newScore)
-      onScoreUpdate(newScore)
-      onGameEnd(true)
-      return
-    }
+    try {
+      const { row, col } = boardUtils.indexToCoords(index)
+      
+      console.log("Sending move to API:", { gameId, row, col })
+      const response = await gameApiService.makeMove(gameId, row, col)
 
-    if (isBoardFull(newBoard)) {
-      setGameStatus("draw")
-      const newScore = score + 25
-      setScore(newScore)
-      onScoreUpdate(newScore)
-      return
+      if (response.success && response.game) {
+        const gameData = response.game
+        
+        // Update board with API response (2D array converted to 1D for UI)
+        const newBoard = boardUtils.board2DTo1D(gameData.board)
+        setBoard(newBoard)
+        setTotalMoves(gameData.moveCount)
+
+        // Update game message and points from API response
+        setGameMessage(gameData.message)
+        setGamePoints(gameData.points.totalPoints)
+
+        // Check game status from API
+        if (gameData.status === "won") {
+          setGameStatus("won")
+          const newScore = score + gameData.points.totalPoints
+          setScore(newScore)
+          onScoreUpdate(newScore)
+          onGameEnd(true)
+        } else if (gameData.status === "lost") {
+          setGameStatus("lost")
+          const newScore = score + gameData.points.totalPoints
+          setScore(newScore)
+          onScoreUpdate(newScore)
+          onGameEnd(false)
+        } else if (gameData.status === "draw") {
+          setGameStatus("draw")
+          const newScore = score + gameData.points.totalPoints
+          setScore(newScore)
+          onScoreUpdate(newScore)
+        } else {
+          // Game is still playing, enable player turn
+          setIsPlayerTurn(true)
+        }
+
+        console.log("Game response:", {
+          status: gameData.status,
+          winner: gameData.winner,
+          message: gameData.message,
+          aiMove: gameData.aiMove,
+          points: gameData.points
+        })
+      } else {
+        console.error("API move failed:", response.error)
+        // Revert player turn on API failure
+        setIsPlayerTurn(true)
+      }
+    } catch (error) {
+      console.error("Error making API move:", error)
+      setIsPlayerTurn(true)
+    } finally {
+      setIsLoading(false)
     }
   }
 
+  // Initialize game when component mounts
   useEffect(() => {
-    if (!isPlayerTurn && gameStatus === "playing") {
-      const timer = setTimeout(() => {
-        const aiMove = getBestMove(board)
-        if (aiMove !== -1) {
-          const newBoard = [...board]
-          newBoard[aiMove] = "O"
-          setBoard(newBoard)
+    initializeGame()
+  }, [])
 
-          const winner = checkWinner(newBoard)
-          if (winner === "O") {
-            setGameStatus("lost")
-            onGameEnd(false)
-          } else if (isBoardFull(newBoard)) {
-            setGameStatus("draw")
-            const newScore = score + 25
-            setScore(newScore)
-            onScoreUpdate(newScore)
-          }
-
-          setIsPlayerTurn(true)
-        }
-      }, 500)
-
-      return () => clearTimeout(timer)
+  // End game when game status changes
+  useEffect(() => {
+    if (gameStatus === "won" || gameStatus === "lost" || gameStatus === "draw") {
+      gameApiService.endGame(gameId, score)
     }
-  }, [isPlayerTurn, board, gameStatus, score, onScoreUpdate, onGameEnd])
+  }, [gameStatus, gameId, score])
 
   const resetGame = () => {
-    setBoard(Array(9).fill(null))
+    // Generate new game ID
+    const newGameId = Date.now().toString() + Math.random().toString(36).substr(2, 9)
+    
+    // Update URL with new gameId
+    const currentParams = new URLSearchParams(searchParams.toString())
+    currentParams.set('gameId', newGameId)
+    
+    // Navigate to new URL with updated gameId
+    router.replace(`?${currentParams.toString()}`, { scroll: false })
+    
+    // Reset game state
+    setBoard(Array(16).fill(null))
     setIsPlayerTurn(true)
     setGameStatus("playing")
+    setTotalMoves(0)
     setGamesPlayed((prev) => prev + 1)
+    setGameMessage("")
+    setGamePoints(0)
+    setGameId(newGameId)
+    
+    // Initialize new game
+    initializeGameWithId(newGameId)
+  }
+
+  // Helper function to initialize game with specific ID
+  const initializeGameWithId = async (newGameId: string) => {
+    setIsLoading(true)
+    setGameId(newGameId)
+
+    try {
+      const response = await gameApiService.initializeGame(newGameId, "tic-tac-toe", tournamentId)
+      if (response.success) {
+        setIsOnline(true)
+        console.log("New game initialized successfully:", response.message)
+      } else {
+        console.error("Failed to initialize new game:", response.error)
+        setIsOnline(false)
+      }
+    } catch (error) {
+      console.error("Error initializing new game:", error)
+      setIsOnline(false)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const renderCell = (index: number) => {
@@ -163,7 +195,7 @@ export function TicTacToe({ onScoreUpdate, onGameEnd }: TicTacToeProps) {
         variant="outline"
         className="h-20 w-20 text-2xl font-bold bg-card hover:bg-accent border-border"
         onClick={() => handleCellClick(index)}
-        disabled={!!value || !isPlayerTurn || gameStatus !== "playing"}
+        disabled={!!value || !isPlayerTurn || gameStatus !== "playing" || isLoading}
       >
         {value === "X" && <X className="h-8 w-8 text-blue-400" />}
         {value === "O" && <Circle className="h-8 w-8 text-red-400" />}
@@ -175,28 +207,30 @@ export function TicTacToe({ onScoreUpdate, onGameEnd }: TicTacToeProps) {
     <div className="flex flex-col items-center space-y-6">
       {/* Game Status */}
       <div className="text-center space-y-2">
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex items-center justify-center gap-4 flex-wrap">
           <Badge variant={gameStatus === "playing" ? "default" : "secondary"}>
-            {gameStatus === "playing" && (isPlayerTurn ? "Your Turn" : "AI Thinking...")}
-            {gameStatus === "won" && "You Won!"}
-            {gameStatus === "lost" && "AI Won"}
-            {gameStatus === "draw" && "Draw!"}
+            {isLoading && "Loading..."}
+            {!isLoading && gameStatus === "playing" && (isPlayerTurn ? "Your Turn" : "AI Thinking...")}
+            {gameStatus !== "playing" && gameMessage}
           </Badge>
-          <Badge variant="outline">Games: {gamesPlayed}</Badge>
+          <Badge variant="outline">Moves: {totalMoves}</Badge>
+          
+          {gameStatus !== "playing" && gamePoints !== 0 && (
+            <Badge variant={gamePoints > 0 ? "default" : "destructive"}>
+              Points: {gamePoints > 0 ? "+" : ""}{gamePoints}
+            </Badge>
+          )}
+
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 p-4 bg-muted/20 rounded-lg">
-        {Array.from({ length: 9 }, (_, index) => renderCell(index))}
+      <div className="grid grid-cols-4 gap-2 p-4 bg-muted/20 rounded-lg">
+        {Array.from({ length: 16 }, (_, index) => renderCell(index))}
       </div>
 
       {gameStatus !== "playing" && (
         <div className="text-center space-y-4">
-          <div className="text-lg font-semibold">
-            {gameStatus === "won" && <span className="text-green-400">Excellent! +100 points</span>}
-            {gameStatus === "lost" && <span className="text-red-400">Better luck next time!</span>}
-            {gameStatus === "draw" && <span className="text-yellow-400">Good game! +25 points</span>}
-          </div>
+         
           <Button onClick={resetGame} className="game-glow">
             <RotateCcw className="h-4 w-4 mr-2" />
             Play Again
@@ -204,10 +238,7 @@ export function TicTacToe({ onScoreUpdate, onGameEnd }: TicTacToeProps) {
         </div>
       )}
 
-      <div className="text-center">
-        <div className="text-sm text-muted-foreground">Current Score</div>
-        <div className="text-2xl font-bold text-primary prize-glow">{score}</div>
-      </div>
+      
     </div>
   )
 }

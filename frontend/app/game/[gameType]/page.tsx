@@ -15,9 +15,11 @@ export default function GamePage() {
   const router = useRouter()
   const gameType = params.gameType as string
   const tournamentId = searchParams.get("tournament")
+  const gameId = searchParams.get("gameId")
 
   const [score, setScore] = useState(0)
   const [gameKey, setGameKey] = useState(0) // For forcing game restart
+  const [gameStatus, setGameStatus] = useState<"playing" | "won" | "lost" | "draw">("playing")
 
   const gameTitle = gameTypes[gameType as keyof typeof gameTypes] || "Unknown Game"
   const tournamentMode = !!tournamentId
@@ -28,10 +30,12 @@ export default function GamePage() {
 
   const handleGameEnd = (won: boolean) => {
     console.log(`Game ended. Won: ${won}, Score: ${score}`)
+    setGameStatus(won ? "won" : "lost")
   }
 
   const handleRestart = () => {
     setScore(0)
+    setGameStatus("playing")
     setGameKey((prev) => prev + 1) // Force component remount
   }
 
@@ -48,6 +52,8 @@ export default function GamePage() {
       key: gameKey,
       onScoreUpdate: handleScoreUpdate,
       onGameEnd: handleGameEnd,
+      tournamentId: tournamentId || undefined,
+      gameId: gameId || undefined,
     }
 
     switch (gameType) {
@@ -85,6 +91,7 @@ export default function GamePage() {
       onExit={handleExit}
       tournamentMode={tournamentMode}
       tournamentId={tournamentId || undefined}
+      gameStatus={gameStatus}
     >
       {renderGame()}
     </GameLayout>

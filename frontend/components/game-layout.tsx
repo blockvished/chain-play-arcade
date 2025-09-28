@@ -22,6 +22,7 @@ interface GameLayoutProps {
   onExit: () => void
   tournamentMode?: boolean
   tournamentId?: string
+  gameStatus?: "playing" | "won" | "lost" | "draw"
 }
 
 export function GameLayout({
@@ -35,16 +36,22 @@ export function GameLayout({
   onExit,
   tournamentMode = false,
   tournamentId,
+  gameStatus = "playing",
 }: GameLayoutProps) {
   const [gameTime, setGameTime] = useState(0)
 
   useEffect(() => {
+    // Only start timer if game is playing
+    if (gameStatus !== "playing") {
+      return
+    }
+
     const interval = setInterval(() => {
       setGameTime((prev) => prev + 1)
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [gameStatus])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -85,16 +92,7 @@ export function GameLayout({
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={onRestart} className="bg-transparent">
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Restart
-              </Button>
-              <Button variant="outline" onClick={onExit} className="bg-transparent">
-                <Home className="h-4 w-4 mr-2" />
-                Exit
-              </Button>
-            </div>
+
           </div>
         </div>
 
@@ -106,7 +104,7 @@ export function GameLayout({
           </div>
 
           <div className="space-y-4">
-            <Card>
+            {/* <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center text-lg">
                   <Trophy className="h-5 w-5 mr-2 text-yellow-400" />
@@ -116,7 +114,7 @@ export function GameLayout({
               <CardContent>
                 <div className="text-3xl font-bold text-foreground prize-glow">{score}</div>
               </CardContent>
-            </Card>
+            </Card> */}
 
             <Card>
               <CardHeader className="pb-3">
@@ -160,26 +158,19 @@ export function GameLayout({
                   <span className="text-muted-foreground">Mode</span>
                   <span className="font-medium">{tournamentMode ? "Tournament" : "Practice"}</span>
                 </div>
-                {tournamentId && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Tournament</span>
-                    <Link href={`/tournaments/${tournamentId}`} className="text-primary hover:underline">
-                      View Details
-                    </Link>
-                  </div>
-                )}
+                
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-1">
                 <CardTitle className="text-lg">How to Play</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground space-y-2">
                 {gameType === "tic-tac-toe" && (
                   <>
                     <p>• Click on empty squares to place your mark</p>
-                    <p>• Get 3 in a row to win</p>
+                    <p>• Get 4 in a row to win</p>
                     <p>• Beat the AI to earn points</p>
                   </>
                 )}
