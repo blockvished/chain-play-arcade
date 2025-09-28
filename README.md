@@ -8,6 +8,9 @@
 ![Foundry](https://img.shields.io/badge/Foundry-000000?style=for-the-badge&logo=foundry&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
 
+Our smart contract is deployed on [Flow testnet](https://testnet.flowscan.io/evm/contract/0x05CaE15c24b3Fcd9374998e6fB59aE893395A6B9)
+
+
 Chain Play Arcade is a blockchain-native gaming ecosystem where players can compete in skill-based tournaments for real rewards. The platform leverages smart contracts for transparent and trustless event management, prize distribution, and game logic.
 
 ---
@@ -64,6 +67,8 @@ This project is a full-stack dApp with three main components:
     -   **Solidity**: For writing the smart contracts.
     -   **Foundry**: For compiling, testing, and deploying contracts.
     -   **OpenZeppelin**: For secure, community-vetted contract standards (implied).
+    -   **Walrus**: Walrus for storing the game states in json.
+    -   **Flow**: Deployed on flow blockchain.
 
 -   **Frontend**
     -   **Next.js**: React framework for the user interface.
@@ -174,3 +179,4 @@ Don't forget to give the project a star! Thanks again!
 ## 📜 License
 
 Distributed under the MIT License. See `LICENSE` for more information.
+
